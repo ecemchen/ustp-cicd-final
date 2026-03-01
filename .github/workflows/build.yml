@@ -9,16 +9,31 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
       - run: npm install
-      - run: npm run build #test!
+      - run: npm run build
+      - run: npm test -- --coverage
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: build-artifacts
-          path: dist/ 
-      
+          name: build-artifacts-${{ matrix.os }}
+          path: dist/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: coverage/
+      - uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-${{ matrix.os }}
